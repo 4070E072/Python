@@ -1,1 +1,5 @@
 # 範例程式:a.py
+```
+def test():
+    print('test in a.py')
+```
