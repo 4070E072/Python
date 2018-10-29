@@ -5093,84 +5093,1074 @@ t1.start()			#啟動執行緒
 t2.start()
 
 ```
-# 範例程式:.py
+# 範例程式:FileSplit.py
 ```
+import os
+import os.path
+import time
+
+def FileSplit(sourceFile, targetFolder):
+    if not os.path.isfile(sourceFile):		#原始檔案必須存在
+        print(sourceFile, ' does not exist.')
+        return
+    if not os.path.isdir(targetFolder):		#目的資料夾不存在，則建立
+        os.mkdir(targetFolder)
+    tempData = []		#存放臨時資料
+    number = 1000		#切分後的每個小檔案包含1000列
+    fileNum = 1			#切分後的檔案編號
+    with open(sourceFile, 'r') as srcFile:
+        dataLine = srcFile.readline().strip()
+        while dataLine:
+            for i in range(number):			#讀取1000列文字
+                tempData.append(dataLine) 
+                dataLine = srcFile.readline() 
+                if not dataLine:
+                    break
+            desFile = os.path.join(targetFolder, sourceFile[0:-4] + str(fileNum) + '.txt')
+            with open(desFile, 'a+') as f:	#建立一個小檔案
+                f.writelines(tempData)
+            tempData = []
+            fileNum = fileNum + 1			#小檔案編號加1
+
+if __name__ == '__main__':
+    sourceFile = 'test.txt'				#指定原始檔案
+    targetFolder = 'test'					#指定存放切分後，小檔案的資料夾
+    FileSplit(sourceFile, targetFolder)
 
 ```
-# 範例程式:.py
+# 範例程式:Hadoop_Map.py
 ```
+import os
+import re
+import time
+
+def Map(sourceFile):
+    if not os.path.exists(sourceFile):
+        print(sourceFile, ' does not exist.')
+        return    
+    pattern = re.compile(r'[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}')
+	#pattern = re.compile(r'[0-9]{1,2}/[0-9]{1,2}/[0-9]{4}')
+    result = {}
+    with open(sourceFile, 'r') as srcFile:
+        for dataLine in srcFile:
+            r = pattern.findall(dataLine)
+            if r:
+                print(r[0], ',', 1)		#將中間結果輸出到標準控制台
+Map('test.txt')    
 
 ```
-# 範例程式:.py
+# 範例程式:Hadoop_Reduce.py
 ```
+import os
+import sys
+
+def Reduce(targetFile):
+    result = {}
+    for line in sys.stdin:		#從標準控制台中獲取得中間結果資料
+        riqi, shuliang = line.strip().split(',')
+        result[riqi] = result.get(riqi, 0)+1
+    with open(targetFile, 'w') as fp:
+        for k,v in result.items():
+            fp.write(k + ':' + str(v) + '\n')
+Reduce('result.txt')
 
 ```
-# 範例程式:.py
+# 範例程式:isPrime.py
 ```
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext
+from random import random
+
+conf = SparkConf().setAppName("isPrime")
+sc = SparkContext(conf=conf)
+sqlCtx = SQLContext(sc)
+def isPrime(n):
+    if n<2:
+        return False
+    if n==2:
+        return True
+    if not n&1:
+        return False
+    for i in range(3, int(n**0.5)+2, 2):
+        if n%i == 0:
+            return False
+    return True
+rdd = sc.parallelize(range(100000000))
+result = rdd.filter(isPrime).count()
+print('='*30)
+print(result)
 
 ```
-# 範例程式:.py
+# 範例程式:isPrime2.py
 ```
+import time
+
+def isPrime(n):
+    if n<2:
+        return False
+    if n==2:
+        return True
+    if not n&1:
+        return False
+    for i in range(3, int(n**0.5)+2, 2):
+        if n%i == 0:
+            return False
+    return True
+
+num = 0
+start = time.time()
+for n in range(100000000):
+    if isPrime(n):
+        num += 1
+print(num)
+print(time.time()-start)
 
 ```
-# 範例程式:.py
+# 範例程式:Map.py
 ```
+import os
+import re
+import threading
+import time
+
+def Map(sourceFile):				#這段程式碼僅適用於配套檔案，
+    if not os.path.exists(sourceFile):	#或者類似的Windows升級日誌
+        print(sourceFile, ' does not exist.')
+        return    
+    pattern = re.compile(r'[0-9]{4}/[0-9]{1,2}/[0-9]{1,2}')
+    result = {}
+    with open(sourceFile, 'r') as srcFile:
+        for dataLine in srcFile:
+            r = pattern.findall(dataLine)	#找尋符合日期格式的字串
+            if r:
+                result[r[0]] = result.get(r[0], 0) + 1
+    desFile = sourceFile[0:-4] + '_map.txt'
+    with open(desFile, 'a+') as fp:		#中間的臨時結果
+        for k, v in result.items():
+            fp.write(k + ':' + str(v) + '\n')
+
+if __name__ == '__main__':
+    desFolder = 'test'
+    files = os.listdir(desFolder)
+    def Main(i):					#使用多執行緒
+        Map(desFolder + '\\' + files[i])
+    fileNumber = len(files)
+    for i in range(fileNumber):
+        t = threading.Thread(target = Main, args =(i,))
+        t.start()    
 
 ```
-# 範例程式:.py
+# 範例程式:pi.py
 ```
+from pyspark import SparkConf, SparkContext
+from pyspark.sql import SQLContext
+from random import random
+
+conf = SparkConf().setAppName("pi")
+sc = SparkContext(conf=conf)
+sqlCtx = SQLContext(sc)
+
+def sample(p):
+    x, y = random(), random()
+    return 1 if x*x + y*y < 1 else 0
+
+NUM_SAMPLES = 100000		#數值越大結果越準確
+count = sc.parallelize(range(NUM_SAMPLES))
+count = count.map(sample).reduce(lambda a, b: a + b)
+print('='*30)
+print("Pi is roughly %f" % (4.0 * count / NUM_SAMPLES))
+print('='*30)
 
 ```
-# 範例程式:.py
+# 範例程式:Reduce.py
 ```
+from os.path import isdir
+from os import listdir
+
+def Reduce(sourceFolder, targetFile):
+    if not isdir(sourceFolder):
+        print(sourceFolder, ' does not exist.')
+        return
+    result = {}
+    #Deal only with the mapped files
+    allFiles = [sourceFolder+'\\'+f for f in listdir(sourceFolder) if f.endswith('_map.txt')]
+    for f in allFiles:
+        with open(f, 'r') as fp:
+            for line in fp:
+                line = line.strip()
+                if not line:
+                    continue
+                key, value = line.split(':')	#結合Map.py，理解此處的邏輯
+                result[key] = result.get(key,0) + int(value)
+    with open(targetFile, 'w') as fp:		#建立結果檔
+        for k,v in result.items():
+            fp.write(k + ':' + str(v) + '\n')
+
+if __name__ == '__main__':
+    Reduce('test', 'test\\result.txt')
 
 ```
-# 範例程式:.py
+# 範例程式:12_01_02.py
 ```
+def getBezier(self, P0, P1, P2, P3, t):
+    a0 = (1-t)**3
+    a1 = 3 * (1-t)**2 * t
+    a2 = 3 * t**2 * (1-t)
+    a3 = t**3
+
+    x = a0*P0[0] + a1*P1[0] + a2*P2[0] + a3*P3[0]
+    y = a0*P0[1] + a1*P1[1] + a2*P2[1] + a3*P3[1]
+    z = a0*P0[2] + a1*P1[2] + a2*P2[2] + a3*P3[2]
+
+    return (x, y, z)
+
+def Draw(self):
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+    glLoadIdentity()
+    #平移
+    glTranslatef(-3.0, 0.0, -8.0)
+    #指定三次貝茲曲線的四個控制點座標
+    P0 = (-4, -2, -9)
+    P1 = (-0.5, 3, 0)
+    P2 = (2, -3, 0)
+    P3 = (4.5, 2, 0)
+    #指定模式，繪製連續的折線
+    glBegin(GL_LINE_STRIP)
+    #設定頂點顏色
+    glColor3f(0.0, 0.0, 0.0)
+    #使用100段直線條的拼接，以便逼近三次貝茲曲線
+    for i in range(101):
+        #參數t必須是介於[0,1]之間的實數
+        t = i/100.0
+        p = self.getBezier(P0, P1, P2, P3, t)
+        glVertex3f(*p)
+        
+    #結束本次繪製
+    glEnd()       
+        
+    glutSwapBuffers()
 
 ```
-# 範例程式:.py
+# 範例程式:12_01_03.py
 ```
+# -*- coding:utf-8 -*-
+# Filename: TextureMapping.py
+# --------------------
+# Function description:
+# PyOpenGL demo
+# --------------------
+# Author: Dong Fuguo
+# QQ: 306467355
+# Email: dongfuguo2005@126.com
+#--------------------
+# Date: 2014-12-29, Updated on 2016-5-1
+# --------------------
+
+import sys
+from OpenGL.GL import *
+from OpenGL.GLUT import *
+from OpenGL.GLU import *
+from PIL import Image
+
+class MyPyOpenGLTest:
+    def __init__(self, width=640, height=480, title=b'MyPyOpenGLTest'):
+        glutInit(sys.argv)
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
+        glutInitWindowSize(width, height)
+        self.window = glutCreateWindow(title)
+        glutDisplayFunc(self.Draw)
+        #指定鍵盤事件處理函數
+        glutKeyboardFunc(self.KeyPress)
+        glutIdleFunc(self.Draw)
+        self.InitGL(width, height)
+        #繞各坐標軸旋轉的角度
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+
+    def KeyPress(self, key, x, y):        
+        if key==b'a':
+            self.x += 0.3
+        elif key==b's':
+            self.x -= 0.3
+        elif key==b'j':
+            self.y += 0.3
+        elif key==b'k':
+            self.y -= 0.3
+        elif key==b'g':
+            self.z += 0.3
+        elif key==b'h':
+            self.z -= 0.3
+
+    #繪製圖形
+    def Draw(self):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glLoadIdentity()
+        #沿z軸平移
+        glTranslate(0.0, 0.0, -5.0)
+        #分別繞x,y,z軸旋轉
+        glRotatef(self.x, 1.0, 0.0, 0.0)
+        glRotatef(self.y, 0.0, 1.0, 0.0)
+        glRotatef(self.z, 0.0, 0.0, 1.0)
+
+        #開始繪製立方體的每個面，同時設定紋理映射
+        #繪製四邊形
+        glBegin(GL_QUADS)
+        #設定紋理坐標
+        glTexCoord2f(0.0, 0.0)
+        #繪製頂點
+        glVertex3f(-1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(1.0, 1.0, 1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(-1.0, 1.0, 1.0)
+
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(-1.0, -1.0, -1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(-1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(1.0, -1.0, -1.0)
+
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(-1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(-1.0, 1.0, 1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(1.0, 1.0, 1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(1.0, 1.0, -1.0)
+        
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(-1.0, -1.0, -1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(1.0, -1.0, -1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(-1.0, -1.0, 1.0)
+        
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(1.0, -1.0, -1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(1.0, 1.0, 1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(1.0, -1.0, 1.0)
+
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(-1.0, -1.0, -1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(-1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(-1.0, 1.0, 1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(-1.0, 1.0, -1.0)
+
+        #結束繪製
+        glEnd()
+        #刷新螢幕，產生動畫效果
+        glutSwapBuffers()
+
+    #載入紋理
+    def LoadTexture(self):
+        img = Image.open('sample_texture.bmp')
+        width, height = img.size
+        img = img.tobytes('raw', 'RGBX', 0, -1)
+        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1)
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_RGBA,
+                     GL_UNSIGNED_BYTE,img)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
+        
+    def InitGL(self, width, height):
+        self.LoadTexture()
+        glEnable(GL_TEXTURE_2D)
+        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearDepth(1.0)
+        glDepthFunc(GL_LESS)
+        glShadeModel(GL_SMOOTH)
+        #背景剔除，消隱
+        glEnable(GL_CULL_FACE)
+        glCullFace(GL_BACK)
+        glEnable(GL_POINT_SMOOTH)
+        glEnable(GL_LINE_SMOOTH)
+        glEnable(GL_POLYGON_SMOOTH)
+        glMatrixMode(GL_PROJECTION)
+        glHint(GL_POINT_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_LINE_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_POLYGON_SMOOTH_HINT,GL_FASTEST)
+        glLoadIdentity()
+        gluPerspective(45.0, float(width)/float(height), 0.1, 100.0)
+        glMatrixMode(GL_MODELVIEW)
+    def MainLoop(self):
+        glutMainLoop()
+
+if __name__ == '__main__':
+    w = MyPyOpenGLTest()
+    w.MainLoop()
 
 ```
-# 範例程式:.py
+# 範例程式:12-01.py
 ```
+import sys
+from math import pi as PI
+from math import sin, cos
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+##下載64 bit PyOpenGL安装包
+##http://www.lfd.uci.edu/~gohlke/pythonlibs/#pyopengl
+##pip install file_name.whl
+class MyPyOpenGLTest:
+    #重寫建構函數，初始化OpenGL環境，指定顯示模式以及用來繪圖的函數
+    def __init__(self, width = 640, height = 480, title = 'MyPyOpenGLTest'.encode('big5')):
+        glutInit(sys.argv)
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
+        glutInitWindowSize(width, height)
+        self.window = glutCreateWindow(title)
+        #指定繪製函數
+        glutDisplayFunc(self.Draw)
+        glutIdleFunc(self.Draw)
+        self.InitGL(width, height)
+
+    #根據特定的需求，進一步完成OpenGL的初始化
+    def InitGL(self, width, height):
+        #初始化視窗背景為白色
+        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearDepth(1.0)
+        glDepthFunc(GL_LESS)
+        #光滑渲染
+        glEnable(GL_BLEND)
+        glShadeModel(GL_SMOOTH)
+        glEnable(GL_POINT_SMOOTH)
+        glEnable(GL_LINE_SMOOTH)
+        glEnable(GL_POLYGON_SMOOTH)        
+        glMatrixMode(GL_PROJECTION)
+        #反走樣，也稱抗鋸齒
+        glHint(GL_POINT_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_LINE_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_POLYGON_SMOOTH_HINT,GL_FASTEST)
+        glLoadIdentity()
+        #透視投影變換
+        gluPerspective(45.0, float(width)/float(height), 0.1, 100.0)
+        glMatrixMode(GL_MODELVIEW)
+
+    #定義自己的繪圖函數
+    def Draw(self):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glLoadIdentity()
+        #平移
+        glTranslatef(-3.0, 2.0, -8.0)
+        #繪製二維圖形，z座標為0
+        #指定模式，繪製多邊形
+        glBegin(GL_POLYGON)
+        #設定頂點顏色
+        glColor3f(1.0, 0.0, 0.0)
+        #繪製多邊形頂點
+        glVertex3f(0.0, 1.0, 0.0)
+        glColor3f(0.0, 1.0, 0.0)
+        glVertex3f(1.0, -1.0, 0.0)
+        glColor3f(0.0, 0.0, 1.0)
+        glVertex3f(-1.0, -1.0, 0.0)
+        #結束本次繪製
+        glEnd()
+        
+        glTranslatef(3, -1, 0.0)
+        
+        #繪製三維圖形，三維線條
+        glBegin(GL_LINES)
+        glColor3f(1.0, 0.0, 0.0)
+        glVertex3f(1.0, 1.0, -1.0)
+        glColor3f(0.0, 1.0, 0.0)
+        glVertex3f(-1.0, -1.0, 3.0)
+        glEnd()
+
+        glTranslatef(-0.3, 1, 0)
+
+        #使用折線繪製圓
+        glBegin(GL_LINE_LOOP)
+        n = 100
+        theta = 2*PI/n
+        r = 0.8
+        for i in range(100):
+            x = r*cos(i*theta)
+            y = r*sin(i*theta)
+            glVertex3f(x, y, 0)
+        glEnd()
+        
+        glutSwapBuffers()
+
+    #訊息主迴圈
+    def MainLoop(self):
+        glutMainLoop()
+
+if __name__ == '__main__':
+    #產生實體視窗物件，執行程式，啟動訊息主迴圈
+    w = MyPyOpenGLTest()
+    w.MainLoop()
 
 ```
-# 範例程式:.py
+# 範例程式:12-02.py
 ```
+# -*- coding:utf-8 -*-
+# Filename: TextureMapping.py
+# --------------------
+# Function description:
+# PyOpenGL demo
+# --------------------
+# Author: Dong Fuguo
+# QQ: 306467355
+# Email: dongfuguo2005@126.com
+#--------------------
+# Date: 2014-12-29, Updated on 2016-12-1
+# --------------------
+
+import sys
+from OpenGL.GL import *
+from OpenGL.GLUT import *
+from OpenGL.GLU import *
+from PIL import Image
+
+class MyPyOpenGLTest:
+    #初始化OpenGL環境
+    def __init__(self, width = 640, height = 480, title = b'MyPyOpenGLTest'):
+        glutInit(sys.argv)
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
+        glutInitWindowSize(width, height)
+        self.window = glutCreateWindow(title)
+        glutDisplayFunc(self.Draw)
+        glutIdleFunc(self.Draw)
+        self.InitGL(width, height)
+        #繞各坐標軸旋轉的角度
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
+
+    #繪製圖形
+    def Draw(self):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glLoadIdentity()
+        #沿z軸平移
+        glTranslate(0.0, 0.0, -5.0)
+        #分別繞x,y,z軸旋轉
+        glRotatef(self.x, 1.0, 0.0, 0.0)
+        glRotatef(self.y, 0.0, 1.0, 0.0)
+        glRotatef(self.z, 0.0, 0.0, 1.0)
+
+        #開始繪製立方體的每個面，同時設定紋理映射
+        #繪製四邊形
+        glBegin(GL_QUADS)
+        #繪製頂點，並設定紋理坐標
+        glTexCoord2f(0.0, 0.0)        
+        glVertex3f(-1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(1.0, 1.0, 1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(-1.0, 1.0, 1.0)
+
+        #繪製立方體的第二個面
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(-1.0, -1.0, -1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(-1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(1.0, -1.0, -1.0)
+
+        #繪製立方體的第三個面
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(-1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(-1.0, 1.0, 1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(1.0, 1.0, 1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(1.0, 1.0, -1.0)
+
+        #繪製立方體的第四個面
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(-1.0, -1.0, -1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(1.0, -1.0, -1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(-1.0, -1.0, 1.0)
+
+        #繪製立方體的第五個面
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(1.0, -1.0, -1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(1.0, 1.0, -1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(1.0, 1.0, 1.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(1.0, -1.0, 1.0)
+
+        #繪製立方體的第六個面
+        glTexCoord2f(0.0, 0.0)
+        glVertex3f(-1.0, -1.0, -1.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex3f(-1.0, -1.0, 1.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex3f(-1.0, 1.0, 1.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex3f(-1.0, 1.0, -1.0)
+
+        #結束繪製
+        glEnd()
+        
+        #刷新螢幕，產生動畫效果
+        glutSwapBuffers()
+        
+        #修改各坐標軸的旋轉角度
+        self.x += 0.2
+        self.y += 0.3
+        self.z += 0.1
+
+    #載入紋理
+    def LoadTexture(self):
+        #底下是紋理圖形檔
+        img = Image.open('sample_texture.bmp')
+        width, height = img.size
+        img = img.tobytes('raw', 'RGBX', 0, -1)
+        glBindTexture(GL_TEXTURE_2D, glGenTextures(1))
+        glPixelStorei(GL_UNPACK_ALIGNMENT,1)
+        glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE,img)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+        glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL)
+        
+    def InitGL(self, width, height):
+        self.LoadTexture()
+        glEnable(GL_TEXTURE_2D)
+        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearDepth(1.0)
+        glDepthFunc(GL_LESS)
+        glShadeModel(GL_SMOOTH)
+        #背景剔除，消隱
+        glEnable(GL_CULL_FACE)
+        glCullFace(GL_BACK)
+        glEnable(GL_POINT_SMOOTH)
+        glEnable(GL_LINE_SMOOTH)
+        glEnable(GL_POLYGON_SMOOTH)
+        glMatrixMode(GL_PROJECTION)
+        glHint(GL_POINT_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_LINE_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_POLYGON_SMOOTH_HINT,GL_FASTEST)
+        glLoadIdentity()
+        gluPerspective(45.0, float(width)/float(height), 0.1, 100.0)
+        glMatrixMode(GL_MODELVIEW)
+        
+    def MainLoop(self):
+        glutMainLoop()
+
+if __name__ == '__main__':
+    w = MyPyOpenGLTest()
+    w.MainLoop()
 
 ```
-# 範例程式:.py
+# 範例程式:12-03.py
 ```
+import sys
+from OpenGL.GL import *
+from OpenGL.GLU import *
+from OpenGL.GLUT import *
+
+class MyPyOpenGLTest:
+    #重寫建構函數，初始化OpenGL環境，指定顯示模式以及用來繪圖的函數
+    def __init__(self, width = 640, height = 480, title = b'Normal_Light'):
+        glutInit(sys.argv)
+        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH)
+        glutInitWindowSize(width, height)
+        self.window = glutCreateWindow(title)
+        #指定繪製函數
+        glutDisplayFunc(self.Draw)
+        glutIdleFunc(self.Draw)
+        self.InitGL(width, height)
+
+    #根據特定的需求，進一步完成OpenGL的初始化
+    def InitGL(self, width, height):
+        #初始化視窗背景為白色
+        glClearColor(1.0, 1.0, 1.0, 0.0)
+        glClearDepth(1.0)
+        glDepthFunc(GL_LESS)
+        #設定燈光與材質屬性
+        mat_sp = (1.0, 1.0, 1.0, 1.0)
+        mat_sh = [50.0]
+        light_position = (-0.5, 1.5, 1, 0)
+        yellow_l = (1, 1, 0, 1)
+        ambient = (0.1, 0.8, 0.2, 1.0)
+        glMaterialfv(GL_FRONT, GL_SPECULAR, mat_sp)
+        glMaterialfv(GL_FRONT, GL_SHININESS, mat_sh)
+        glLightfv(GL_LIGHT0, GL_POSITION, light_position)
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, yellow_l)
+        glLightfv(GL_LIGHT0, GL_SPECULAR, yellow_l)
+        glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient)
+        #啟用光照模型
+        glEnable(GL_LIGHTING)
+        glEnable(GL_LIGHT0)
+        glEnable(GL_DEPTH_TEST)
+        #光滑渲染
+        glEnable(GL_BLEND)
+        glShadeModel(GL_SMOOTH)
+        glEnable(GL_POINT_SMOOTH)
+        glEnable(GL_LINE_SMOOTH)
+        glEnable(GL_POLYGON_SMOOTH)        
+        glMatrixMode(GL_PROJECTION)
+        #反走樣，也稱反鋸齒
+        glHint(GL_POINT_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_LINE_SMOOTH_HINT,GL_NICEST)
+        glHint(GL_POLYGON_SMOOTH_HINT,GL_FASTEST)
+        glLoadIdentity()
+        #透視投影變換
+        gluPerspective(45.0, float(width)/float(height), 0.1, 100.0)
+        glMatrixMode(GL_MODELVIEW)
+
+    #定義自己的繪圖函數
+    def Draw(self):
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glLoadIdentity()
+        #平移
+        glTranslatef(-1.5, 2.0, -8.0)                
+        #繪製三維圖形，三維線條
+        glBegin(GL_LINES)
+        #設定頂點顏色
+        glColor3f(1.0, 0.0, 0.0)
+        #設定頂點法線
+        glNormal3f(1.0, 1.0, 1.0)
+        glVertex3f(1.0, 1.0, -1.0)
+        glColor3f(0.0, 1.0, 0.0)
+        glNormal3f(-1.0, -1.0, -1.0)
+        glVertex3f(-1.0, -1.0, 3.0)
+        glEnd()
+
+        #球
+        glColor3f(0.8, 0.3, 1.0)
+        glTranslatef(0, -1.5, 0)
+        #第一個參數是球的半徑，後面兩個參數是分段數
+        glutSolidSphere(1.0,40,40)
+        
+        glutSwapBuffers()
+
+    #訊息主迴圈
+    def MainLoop(self):
+        glutMainLoop()
+
+if __name__ == '__main__':
+    #產生實體視窗物件，執行程式，啟動訊息主迴圈
+    w = MyPyOpenGLTest()
+    w.MainLoop()
 
 ```
-# 範例程式:.py
+# 範例程式:12-04.py
 ```
+from PIL import Image
+import os
+
+def searchLeft(width, height, im):
+    for w in range(width):		#由左向右掃描
+        for h in range(height):	#由下向上掃描
+            color = im.getpixel((w, h))	#取得圖形指定位置的像素顏色
+            if color != (255, 255, 255):
+                return w			#返回橢圓邊界最左端的x坐標
+
+def searchRight(width, height, im):
+    for w in range(width-1, -1, -1):	#由右向左掃描
+        for h in range(height):
+            color = im.getpixel((w, h))
+            if color != (255, 255, 255):
+                return w 			#返回橢圓邊界最右端的x坐標
+            
+def searchTop(width, height, im):
+    for h in range(height-1, -1, -1):
+        for w in range(width):
+            color = im.getpixel((w,h))
+            if color != (255, 255, 255):
+                return h			#返回橢圓邊界最上端的y坐標
+
+def searchBottom(width, height, im):
+    for h in range(height):
+        for w in range(width):
+            color = im.getpixel((w,h))
+            if color != (255, 255, 255):
+                return h			#返回橢圓邊界最下端的y坐標
+
+#巡訪指定資料夾中所有的bmp圖形檔，假設圖形為白色背景，橢圓為其他任意顏色
+images = [f for f in os.listdir('testimages') if f.endswith('.bmp')]
+for f in images:
+    f = 'testimages\\'+f
+    im = Image.open(f)
+    width, height = im.size		#取得圖形大小
+    x0, x1 = searchLeft(width, height, im), searchRight(width, height, im)
+    y0, y1 = searchBottom(width, height, im), searchTop(width, height, im)
+    center = ((x0+x1)//2, (y0+y1)//2)
+    im.putpixel(center, (255,0,0))	#把橢圓中心像素畫成紅色
+    im.save(f[0:-4]+'_center.bmp')	#儲存為新圖形檔
+im.close()
 
 ```
-# 範例程式:.py
+# 範例程式:12-05.py
 ```
+from PIL import Image, ImageDraw, ImageFont
+
+def redraw(f, v1, v2):
+    start = int(600*v1)
+    end = int(600*v2)    
+    im = Image.open(f)
+    for w in range(start):			#繪製紅色區域
+        for h in range(36, 61):			#具體數值需根據圖形大小進行調整
+            im.putpixel((w,h), (255, 0, 0))
+    for w in range(start, end):		#繪製綠色區域
+        for h in range(36, 61):
+            im.putpixel((w,h), (0, 255, 0))
+    for w in range(end, 600):			#繪製品紅色區域
+        for h in range(36, 61):
+            im.putpixel((w,h), (255, 0, 255))
+    draw = ImageDraw.Draw(im)
+    font = ImageFont.truetype('simsun.ttc', 18)
+    draw.text((start//2,38), 'A', (0,0,0), font=font)	#在各自區域內居中顯示字母
+    draw.text(((end-start)//2+start,38), 'B',(0,0,0), font=font)
+    draw.text(((600-end)//2+end,38), 'C', (0,0,0), font=font)
+    im.save(f)						#保存圖片
+
+redraw(r'd:\biaotou1.png', 0.1, 0.9)
 
 ```
-# 範例程式:.py
+# 範例程式:12-06.py
 ```
+from PIL import Image, ImageDraw, ImageFont
+import random
+import string
+
+#所有可能的字元，主要是英文字母和數字
+characters = string.ascii_letters+string.digits
+
+#取得指定長度的字串
+def selectedCharacters(length):
+    '''length:the number of characters to show'''
+    result = ""
+    for i in range(length):
+        result += random.choice(characters)
+    return result
+
+def getColor():
+    '''get a random color'''
+    r = random.randint(0,255)
+    g = random.randint(0,255)
+    b = random.randint(0,255)
+    return (r,g,b)
+
+def main(size=(200,100), characterNumber=6, bgcolor=(255,255,255)):
+    imageTemp = Image.new('RGB', size, bgcolor)
+    #設定字體和字型大小
+    font = ImageFont.truetype('c:\\windows\\fonts\\TIMESBD.TTF', 48)
+    draw = ImageDraw.Draw(imageTemp)
+    text = selectedCharacters(characterNumber)
+    width, height = draw.textsize(text, font)
+    #繪製驗證碼字串
+    offset = 2
+    for i in range(characterNumber):
+        offset += width//characterNumber
+        position = (offset, (size[1]-height)//2+random.randint(-10,10))
+        draw.text(xy=position, text=text[i], font=font, fill=getColor())    
+    #對驗證碼圖片進行基礎變換，這裡採用簡單的點運算
+    imageFinal = Image.new('RGB', size, bgcolor)
+    pixelsFinal = imageFinal.load()
+    pixelsTemp = imageTemp.load()
+    for y in range(0, size[1]):
+        offset = random.randint(-1,1)
+        for x in range(0, size[0]):
+            newx = x+offset
+            if newx>=size[0]:
+                newx = size[0]-1
+            elif newx<0:
+                newx = 0
+            pixelsFinal[newx,y] = pixelsTemp[x,y]
+    draw = ImageDraw.Draw(imageFinal)
+    #繪製干擾噪點像素
+    for i in range(int(size[0]*size[1]*0.07)):
+        draw.point((random.randint(0,size[0]), random.randint(0,size[1])), fill=getColor())
+    #繪製干擾線條
+    for i in range(8):
+        start = (0, random.randint(0, size[1]-1))
+        end = (size[0], random.randint(0, size[1]-1))
+        draw.line([start, end], fill=getColor(), width=1)
+    #繪製干擾弧線
+    for i in range(8):
+        start = (-50, -50)
+        end = (size[0]+10, random.randint(0, size[1]+10))
+        draw.arc(start+end, 0, 360, fill=getColor())
+    #儲存驗證碼圖片
+    imageFinal.save("result.jpg")
+    imageFinal.show()
+
+if __name__=="__main__":
+    main((200,100), 8, (255,255,255))
 
 ```
-# 範例程式:.py
+# 範例程式:12-07.py
 ```
+from PIL import Image
+import os
+
+gifFileName = 'bike.gif'
+#以Image模組的open()方法開啟gif動態圖形時，預設是第一幀
+im = Image.open(gifFileName)
+pngDir = gifFileName[:-4]
+#建立存放每幀圖片的資料夾
+os.mkdir(pngDir)
+
+try:
+    while True:
+        #儲存目前幀圖片
+        current = im.tell()
+        im.save(pngDir+'\\'+str(current)+'.png')
+        #取得下一幀圖片
+        im.seek(current+1)
+except EOFError:
+    pass
 
 ```
-# 範例程式:.py
+# 範例程式:12-08.py
 ```
+from PIL import Image
+from math import floor
+
+def textureMap(srcTextureFile, dstSurfaceFile, dstWidth, dstHeight):
+    '''srcTextureFile:原始圖片
+       dstSurfaceFile:模擬目標物體表面
+       dstWidth:目標物體表面寬度
+       dstHeight:目標物體表面高度
+    #開啟原始圖片
+    srcTexture = Image.open(srcTextureFile)
+    #建立指定尺寸的目標物體表面
+    dstSurface = Image.new('RGBA', (dstWidth, dstHeight))
+    srcWidth, srcHeight = srcTexture.size
+    #根據目標物體表面尺寸，計算並取得原始圖片中對應位置的像素值
+    for w in range(dstWidth):
+        for h in range(dstHeight):
+            x, y = floor(w/dstWidth*srcWidth), floor(h/dstHeight*srcHeight)
+            dstSurface.putpixel((w,h), srcTexture.getpixel((x,y)))
+    dstSurface.save(dstSurfaceFile)
+    dstSurface.close()
+    srcTexture.close()
+    #也可以嘗試下面的寫法，更簡單一些
+    '''
+    srcTexture = Image.open(srcTextureFile)
+    srcTexture = srcTexture.resize((dstWidth,dstHeight))
+    srcTexture.save(dstSurfaceFile)
+    srcTexture.close()
+
+
+#測試
+textureMap('sample.jpg', r'new.jpg', 200, 250)
 
 ```
-# 範例程式:.py
+# 範例程式:12-09.py
 ```
+from random import randint
+from PIL import Image
+
+#根據原始24位元BMP影像檔，產生指定數量含有隨機噪點的臨時圖形
+def addNoise(fileName, num):
+    if not fileName.endswith('.bmp'):
+        print('Must be bmp image')
+        return
+    for i in range(num):
+        im = Image.open(fileName)
+        width, height = im.size
+        n = randint(1, 20)
+        for j in range(n):
+            w = randint(0, width-1)
+            h = randint(0, height-1)
+            im.putpixel((w,h), (0,0,0))
+        im.save(fileName[:-4]+'_'+str(i+1)+'.bmp')
+
+#根據多個含有隨機噪點的圖形，對應位置像素計算平均值，以產生結果圖形
+def mergeOne(fileName, num):
+    if not fileName.endswith('.bmp'):
+        print('Must be bmp image')
+        return
+    ims = [Image.open(fileName[:-4]+'_'+str(i+1)+'.bmp') for i in range(num)]
+    im = Image.new('RGB', ims[0].size, (255,255,255))
+    for w in range(im.size[0]):
+        for h in range(im.size[1]):
+            r, g, b = [0]*3
+            for tempIm in ims:
+                value = tempIm.getpixel((w,h))
+                r += value[0]
+                g += value[1]
+                b += value[2]
+            r = r//num
+            g = g//num
+            b = b//num
+            im.putpixel((w,h), (r,g,b))
+    im.save(fileName[:-4]+'_result.bmp')
+
+#對比合併後的圖形和原始圖形之間的相似度
+def compare(fileName):
+    im1 = Image.open(fileName)
+    im2 = Image.open(fileName[:-4]+'_result.bmp')
+    width, height = im1.size
+    total = width * height
+    right = 0
+    expectedRatio = 0.05
+    for w in range(width):
+        for h in range(height):
+            r1, g1, b1 = im1.getpixel((w,h))
+            r2, g2, b2 = im2.getpixel((w,h))
+            if (abs(r1-r2),abs(g1-g2),abs(b1-b2)) < (255*expectedRatio,)*3:
+                right += 1
+    return (total, right)
+
+if __name__ == '__main__':
+    #產生32個臨時圖形後進行融合，並對比融合後的圖形與原始圖形的相似度
+    addNoise('test.bmp', 32)
+    mergeOne('test.bmp', 32)
+    result = compare('test.bmp')
+    print('Total number of pixels:{0[0]},right number:{0[1]}'.format(result))
 
 ```
-# 範例程式:.py
+# 範例程式:12-10.py
 ```
+from PIL import Image
+
+def qipan(fileName, width, height, color1, color2):
+    #產生空白圖形
+    im = Image.new('RGB',(width,height))
+    for h in range(height):
+        for w in range(width):
+            #填充顏色交叉的圖案
+            if (int(h/height*8)+int(w/width*8)) % 2 == 0:
+                im.putpixel((w,h), color1)
+            else:
+                im.putpixel((w,h), color2)
+    #儲存圖形檔
+    im.save(fileName)
+
+if __name__=='__main__':
+    fileName = 'qipan.jpg'
+    qipan(fileName, 500, 500, (128,128,128), (10,10,10))
 
 ```
 # 範例程式:.py
