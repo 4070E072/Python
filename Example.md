@@ -6163,100 +6163,747 @@ if __name__=='__main__':
     qipan(fileName, 500, 500, (128,128,128), (10,10,10))
 
 ```
-# 範例程式:.py
+# 範例程式:13_02_03.py
 ```
+import numpy as np
+from scipy import signal, misc
+import matplotlib.pyplot as plt
+#need to pip install matplotlib first
+
+image = misc.ascent()		#二維圖形陣列，lena圖形
+w = np.zeros((50, 50))		#全0二維陣列，摺積核
+w[0][0] = 1.0				#修改參數，調整濾波器
+w[49][25] = 1.0				#可以根據需求調整
+image_new = signal.fftconvolve(image, w)	#使用FFT演算法進行摺積
+
+plt.figure()
+plt.imshow(image_new)		#顯示濾波後的圖形
+plt.gray()
+plt.title('Filtered image')
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_02_03_2.py
 ```
+import numpy as np
+from scipy import signal, misc
+import matplotlib.pyplot as plt
+#need to pip install matplotlib first
+
+image = misc.ascent()
+w = signal.gaussian(50, 10.0)
+image_new = signal.sepfir2d(image, w, w)
+
+plt.figure()
+plt.imshow(image_new)		#顯示濾波後的圖形
+plt.gray()
+plt.title('Filtered image')
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_01.py
 ```
+import numpy as np
+import pylab as pl
+
+t = np.arange(0.0, 2.0*np.pi, 0.01)	#產生陣列，0到2π之間，以0.01為步長
+s = np.sin(t)			#對陣列的所有元素求正弦值，得到新陣列
+pl.plot(t,s)			#畫圖，以t為橫坐標，s為縱坐標
+pl.xlabel('x')			#設定坐標軸標籤
+pl.ylabel('y')
+pl.title('sin')		#設定圖形標題
+pl.show()				#顯示圖形
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_02.py
 ```
+import numpy as np
+import pylab as pl
+
+a = np.arange(0, 2.0*np.pi, 0.1)
+b = np.cos(a)
+pl.scatter(a,b)			#繪製散點圖
+pl.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_02_2.py
 ```
+import matplotlib.pylab as pl
+import numpy as np
+
+x = np.random.random(100)
+y = np.random.random(100)
+pl.scatter(x,y,s=x*500,c=u'r',marker=u'*')	#s指大小，c指顏色，marker指符號形狀
+pl.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_03.py
 ```
+import numpy as np
+import matplotlib.pyplot as plt
+
+#The slices will be ordered and plotted counter-clockwise.
+labels = 'Frogs', 'Hogs', 'Dogs', 'Logs'
+sizes = [15, 30, 45, 10]
+colors = ['yellowgreen', 'gold', '#FF0000', 'lightcoral']
+explode = (0, 0.1, 0, 0.1)			#使餅狀圖的第2片和第4片裂開
+
+fig = plt.figure()
+ax = fig.gca()
+ax.pie(np.random.random(4), explode=explode, labels=labels, colors=colors,
+       autopct='%1.1f%%', shadow=True, startangle=90,
+       radius=0.25, center=(0, 0), frame=True)
+ax.pie(np.random.random(4), explode=explode, labels=labels, colors=colors,
+       autopct='%1.1f%%', shadow=True, startangle=90,
+       radius=0.25, center=(1, 1), frame=True)
+ax.pie(np.random.random(4), explode=explode, labels=labels, colors=colors,
+       autopct='%1.1f%%', shadow=True, startangle=90,
+       radius=0.25, center=(0, 1), frame=True)
+ax.pie(np.random.random(4), explode=explode, labels=labels, colors=colors,
+       autopct='%1.1f%%', shadow=True, startangle=90,
+       radius=0.25, center=(1, 0), frame=True)
+ax.set_xticks([0, 1])				#設定坐標軸刻度
+ax.set_yticks([0, 1])
+ax.set_xticklabels(["Sunny", "Cloudy"])	#設定坐標軸刻度上顯示的標籤
+ax.set_yticklabels(["Dry", "Rainy"])
+ax.set_xlim((-0.5, 1.5))				#設定坐標軸跨度
+ax.set_ylim((-0.5, 1.5))
+#Set aspect ratio to be equal so that pie is drawn as a circle.
+ax.set_aspect('equal')
+
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_04.py
 ```
+import numpy as np
+import pylab as pl
+import matplotlib.font_manager as fm
+
+myfont = fm.FontProperties(fname=r'C:\Windows\Fonts\msjh.ttf') #設定字體
+t = np.arange(0.0, 2.0*np.pi, 0.01)	#引數取值範圍
+s = np.sin(t)						#計算正弦函數值
+z = np.cos(t)						#計算餘弦函數值
+pl.plot(t, s, label='正弦')
+pl.plot(t, z, label='餘弦')
+pl.xlabel('x-變數', fontproperties=myfont, fontsize=16)		#設定x標籤
+pl.ylabel('y-正弦餘弦函數值', fontproperties=myfont, fontsize=16)
+pl.title('sin-cos函數圖形', fontproperties=myfont, fontsize=24) #圖形標題
+pl.legend(prop=myfont)				#設定圖例
+pl.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_05.py
 ```
+import numpy as np
+import matplotlib.pyplot as plt
+
+x = np.linspace(0, 2*np.pi, 500)
+y = np.sin(x)
+z = np.cos(x*x)
+plt.figure(figsize=(8,5))
+#標籤前後加上$，代表以內嵌的LaTex引擎顯示為公式
+plt.plot(x,y,label='$sin(x)$',color='red',linewidth=2)	#紅色，2個像素寬
+plt.plot(x,z,'b--',label='$cos(x^2)$')		#藍色，虛線
+plt.xlabel('Time(s)')
+plt.ylabel('Volt')
+plt.title('Sin and Cos figure using pyplot')
+plt.ylim(-1.2,1.2)
+plt.legend()							#顯示圖例
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_06.py
 ```
+import numpy as np
+import matplotlib.pyplot as plt
+
+x= np.linspace(0, 2*np.pi, 500)	#建立引數陣列
+y1 = np.sin(x)					#建立函數值陣列
+y2 = np.cos(x)
+y3 = np.sin(x*x)
+plt.figure(1)					#建立圖形
+#create three axes
+ax1 = plt.subplot(2,2,1)			#第一列第一行圖形
+ax2 = plt.subplot(2,2,2)			#第一列第二行圖形
+ax3 = plt.subplot(2,1,2)			#第二列
+plt.sca(ax1)					#選擇ax1
+plt.plot(x,y1,color='red')		#繪製紅色曲線
+plt.ylim(-1.2,1.2)				#限制y坐標軸範圍
+plt.sca(ax2)					#選擇ax2
+plt.plot(x,y2,'b--')			#繪製藍色曲線
+plt.ylim(-1.2,1.2)
+plt.sca(ax3)					#選擇ax3
+plt.plot(x,y3,'g--')
+plt.ylim(-1.2,1.2)
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_07.py
 ```
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+import numpy as np
+import matplotlib.pyplot as plt
+
+mpl.rcParams['legend.fontsize'] = 10	#圖例字型大小
+fig = plt.figure()
+ax = fig.gca(projection='3d')			#三維圖形
+theta = np.linspace(-4 * np.pi, 4 * np.pi, 100)
+z = np.linspace(-4, 4, 100)*0.3		#測試資料
+r = z**3 + 1
+x = r * np.sin(theta)
+y = r * np.cos(theta)
+ax.plot(x, y, z, label='parametric curve')
+ax.legend()
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_08.py
 ```
+import numpy as np
+import matplotlib.pyplot as plt
+import mpl_toolkits.mplot3d
+
+x,y = np.mgrid[-2:2:20j, -2:2:20j]
+z = 50 * np.sin(x+y)		#測試資料
+ax = plt.subplot(111, projection='3d')	#三維圖形
+ax.plot_surface(x,y,z,rstride=2, cstride=1, cmap=plt.cm.Blues_r)
+ax.set_xlabel('X')			#設定坐標軸標籤
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_08_2.py
 ```
+import pylab as pl
+import numpy as np
+import mpl_toolkits.mplot3d
+
+rho, theta = np.mgrid[0:1:40j, 0:2*np.pi:40j]
+z = rho**2
+x = rho*np.cos(theta)
+y = rho*np.sin(theta)
+ax = pl.subplot(111, projection='3d')
+ax.plot_surface(x,y,z)
+pl.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_09.py
 ```
+from matplotlib.path import Path
+from matplotlib.patches import PathPatch
+import matplotlib.pyplot as plt
+
+
+fig, ax = plt.subplots()
+
+#定義繪圖指令與控制點坐標
+#其中MOVETO表示將繪製起點移動到指定坐標
+#CURVE4表示使用4個控制點繪製3次貝茲曲線
+#CURVE3表示使用3個控制點繪製2次貝茲曲線
+#LINETO表示從目前位置繪製直線到指定位置
+#CLOSEPOLY表示從目前位置繪製直線到指定位置，並閉合多邊形
+path_data = [
+    (Path.MOVETO, (1.58, -2.57)),
+    (Path.CURVE4, (0.35, -1.1)),
+    (Path.CURVE4, (-1.75, 2.0)),
+    (Path.CURVE4, (0.375, 2.0)),
+    (Path.LINETO, (0.85, 1.15)),
+    (Path.CURVE4, (2.2, 3.2)),
+    (Path.CURVE4, (3, 0.05)),
+    (Path.CURVE4, (2.0, -0.5)),
+    (Path.CURVE3, (3.5, -1.8)),
+    (Path.CURVE3, (2, -2)),
+    (Path.CLOSEPOLY, (1.58, -2.57)),
+    ]
+codes, verts = zip(*path_data)
+path = Path(verts, codes)
+#按照指令和坐標進行繪圖
+patch = PathPatch(path, facecolor='r', alpha=0.9)
+ax.add_patch(patch)
+
+# 繪製控制多邊形和連接點
+x, y = zip(*path.vertices)
+line, = ax.plot(x, y, 'go-')
+
+#顯示網格
+ax.grid()
+#設定坐標軸刻度大小一致，可以更真實地顯示圖形
+ax.axis('equal')
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_10.py
 ```
+import sys
+import tkinter as Tk
+import matplotlib
+from numpy import arange, sin, pi
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
+from matplotlib.backend_bases import key_press_handler
+from matplotlib.figure import Figure
+
+matplotlib.use('TkAgg')
+
+root = Tk.Tk()
+root.title("matplotlib in TK")
+#設定圖形尺寸與品質
+f = Figure(figsize=(5, 4), dpi=100)
+a = f.add_subplot(111)
+t = arange(0.0, 3, 0.01)
+s = sin(2*pi*t)
+#繪製圖形
+a.plot(t, s)
+
+
+#把繪製的圖形顯示到tkinter視窗
+canvas = FigureCanvasTkAgg(f, master=root)
+canvas.show()
+canvas.get_tk_widget().pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+#把matplotlib繪製圖形的工具列顯示於tkinter視窗
+toolbar = NavigationToolbar2TkAgg(canvas, root)
+toolbar.update()
+canvas._tkcanvas.pack(side=Tk.TOP, fill=Tk.BOTH, expand=1)
+
+#定義並繫結鍵盤事件處理函數
+def on_key_event(event):
+    print('you pressed %s' % event.key)
+    key_press_handler(event, canvas, toolbar)
+canvas.mpl_connect('key_press_event', on_key_event)
+
+#按一下事件處理函數
+def _quit():
+    #結束事件主迴圈，並銷毀應用程式視窗
+    root.quit()
+    root.destroy()
+button = Tk.Button(master=root, text='Quit', command=_quit)
+button.pack(side=Tk.BOTTOM)
+
+Tk.mainloop()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_11.py
 ```
+from random import choice
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import RadioButtons, Button
+
+t = np.arange(0.0, 2.0, 0.01)
+s0 = np.sin(2*np.pi*t)
+s1 = np.sin(4*np.pi*t)
+s2 = np.sin(8*np.pi*t)
+
+fig, ax = plt.subplots()
+l, = ax.plot(t, s0, lw=2, color='red')
+plt.subplots_adjust(left=0.3)
+
+#定義允許的幾種頻率，並建立單選鈕元件
+#其中[0.05, 0.7, 0.15, 0.15]表示元件在視窗的歸一化位置和大小
+axcolor = 'lightgoldenrodyellow'
+rax = plt.axes([0.05, 0.7, 0.15, 0.15], axisbg=axcolor)
+radio = RadioButtons(rax, ('2 Hz', '4 Hz', '8 Hz'))
+hzdict = {'2 Hz': s0, '4 Hz': s1, '8 Hz': s2}
+def hzfunc(label):
+    ydata = hzdict[label]
+    l.set_ydata(ydata)
+    plt.draw()
+radio.on_clicked(hzfunc)
+
+#定義允許的幾種顏色，並建立單選鈕元件
+rax = plt.axes([0.05, 0.4, 0.15, 0.15], axisbg=axcolor)
+colors = ('red', 'blue', 'green')
+radio2 = RadioButtons(rax, colors)
+def colorfunc(label):
+    l.set_color(label)
+    plt.draw()
+radio2.on_clicked(colorfunc)
+
+#定義允許的幾種線型，並建立單選鈕元件
+rax = plt.axes([0.05, 0.1, 0.15, 0.15], axisbg=axcolor)
+styles = ('-', '--', '-.', 'steps', ':')
+radio3 = RadioButtons(rax, styles)
+def stylefunc(label):
+    l.set_linestyle(label)
+    plt.draw()
+radio3.on_clicked(stylefunc)
+
+#定義按鈕按一下事件處理函數，並在視窗上建立按鈕
+def randomFig(event):
+    #隨機選擇一個頻率，同時設定單選鈕的選中項
+    hz = choice(tuple(hzdict.keys()))
+    hzLabels = [label.get_text() for label in radio.labels]
+    radio.set_active(hzLabels.index(hz))
+    l.set_ydata(hzdict[hz])
+    #隨機選擇一個顏色，同時設定單選鈕的選中項
+    c = choice(colors)
+    radio2.set_active(colors.index(c))
+    l.set_color(c)
+    #隨機選擇一個線型，同時設定單選鈕的選中項
+    style = choice(styles)
+    radio3.set_active(styles.index(style))
+    l.set_linestyle(style)
+    #根據設定的屬性繪製圖形
+    plt.draw()
+axRnd = plt.axes([0.5, 0.015, 0.2, 0.045])
+buttonRnd = Button(axRnd, 'Random Figure')
+buttonRnd.on_clicked(randomFig)
+#顯示圖形
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_12.py
 ```
+from time import sleep
+from threading import Thread
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
+
+fig, ax = plt.subplots()
+#設定圖形顯示位置
+plt.subplots_adjust(bottom=0.2)
+#實驗資料
+range_start, range_end, range_step = 0, 1, 0.005
+t = np.arange(range_start, range_end, range_step)
+s = np.sin(4*np.pi*t)
+l, = plt.plot(t, s, lw=2)
+#自訂類別，用來封裝兩個按鈕的按一下事件處理函數
+class ButtonHandler:
+    def __init__(self):
+        self.flag = True
+        self.range_s, self.range_e, self.range_step = 0, 1, 0.005
+    #執行緒函數，用來更新資料並重新繪製圖形
+    def threadStart(self):
+        while self.flag:
+            sleep(0.02)
+            self.range_s += self.range_step
+            self.range_e += self.range_step
+            t = np.arange(self.range_s, self.range_e, self.range_step)
+            ydata = np.sin(4*np.pi*t)
+            #更新資料
+            l.set_xdata(t-t[0])
+            l.set_ydata(ydata)
+            #重新繪製圖形
+            plt.draw()
+    def Start(self, event):
+        self.flag = True
+        #建立並啟動新執行緒
+        t = Thread(target=self.threadStart)
+        t.start()
+    def Stop(self, event):
+        self.flag = False
+        
+callback = ButtonHandler()
+#建立按鈕，並設定按一下事件處理函數
+axprev = plt.axes([0.81, 0.05, 0.1, 0.075])
+bprev = Button(axprev, 'Stop')
+bprev.on_clicked(callback.Stop)
+axnext = plt.axes([0.7, 0.05, 0.1, 0.075])
+bnext = Button(axnext, 'Start')
+bnext.on_clicked(callback.Start)
+
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:13_05_13.py
 ```
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider, Button, RadioButtons
+
+fig, ax = plt.subplots()
+#設定繪圖區域位置
+plt.subplots_adjust(left=0.1, bottom=0.25)
+t = np.arange(0.0, 1.0, 0.001)
+#初始振幅與頻率，並繪製初始圖形
+a0, f0= 5, 3
+s = a0*np.sin(2*np.pi*f0*t)
+l, = plt.plot(t, s, lw=2, color='red')
+#設定坐標軸刻度範圍
+plt.axis([0, 1, -10, 10])
+
+axColor = 'lightgoldenrodyellow'
+#建立兩個Slider元件，分別設定位置/尺寸、背景色和初始值
+axfreq = plt.axes([0.1, 0.1, 0.75, 0.03], axisbg=axColor)
+sfreq = Slider(axfreq, 'Freq', 0.1, 30.0, valinit=f0)
+axamp = plt.axes([0.1, 0.15, 0.75, 0.03], axisbg=axColor)
+samp = Slider(axamp, 'Amp', 0.1, 10.0, valinit=a0)
+#為Slider元件設定事件處理函數
+def update(event):
+    #取得Slider元件的目前值，並以此更新圖形
+    amp = samp.val
+    freq = sfreq.val
+    l.set_ydata(amp*np.sin(2*np.pi*freq*t))
+    plt.draw()
+    #fig.canvas.draw_idle()
+sfreq.on_changed(update)
+samp.on_changed(update)
+
+#建立Adjust按鈕，設定大小、位置和事件處理函數
+def adjustSliderValue(event):
+    ampValue = samp.val + 0.05
+    if ampValue > 10:
+        ampValue = 0.1
+    samp.set_val(ampValue)
+
+    freqValue = sfreq.val + 0.05
+    if freqValue > 30:
+        freqValue = 0.1
+    sfreq.set_val(freqValue)
+    update(event)
+axAdjust = plt.axes([0.6, 0.025, 0.1, 0.04])
+buttonAdjust = Button(axAdjust, 'Adjust', color=axColor, hovercolor='red')
+buttonAdjust.on_clicked(adjustSliderValue)
+
+#建立按鈕元件，以便恢復初始值
+resetax = plt.axes([0.8, 0.025, 0.1, 0.04])
+button = Button(resetax, 'Reset', color=axColor, hovercolor='yellow')
+def reset(event):
+    sfreq.reset()
+    samp.reset()
+button.on_clicked(reset)
+
+plt.show()
 
 ```
-# 範例程式:.py
+# 範例程式:14-01.py
 ```
+def KaiSaEncrypt(ch, k):
+    if (not isinstance(ch, str)) or len(ch)!=1:
+        print('The first parameter must be a character')
+        return
+    if (not isinstance(k, int)) or (not 1<=k<=25):
+        print('The second parameter must be an integer between 1 and 25')
+        return
+    #把英文字母轉換為後面第k個字母
+    if 'a'<=ch<=chr(ord('z')-k):
+        return chr(ord(ch)+k)
+    #把英文字母首尾相連
+    elif chr(ord('z')-k)<ch<='z':
+        return chr((ord(ch)-ord('a')+k)%26+ord('a'))
+    elif 'A'<=ch<=chr(ord('Z')-k):
+        return chr(ord(ch)+k)
+    elif chr(ord('Z')-k)<ch<='Z':
+        return chr((ord(ch)-ord('A')+k)%26+ord('A'))
+    else:
+        return ch
+
+def encrypt(plain, k):
+    return ''.join([KaiSaEncrypt(ch, k) for ch in plain])
+
+def KaiSaDecrypt(ch, k):
+    if (not isinstance(ch, str)) or len(ch)!=1:
+        print('The first parameter must be a character')
+        return
+    if (not isinstance(k, int)) or (not 1<=k<=25):
+        print('The second parameter must be an integer between 1 and 25')
+        return
+    #把英文字母首尾相連，然後將每個字母轉換為前面第k個字母
+    if chr(ord('a')+k)<=ch<='z':
+        return chr(ord(ch)-k)
+    elif 'a'<=ch<chr(ord('a')+k):
+        return chr((ord(ch)-k+26))
+    elif chr(ord('A')+k)<=ch<='Z':
+        return chr(ord(ch)-k)
+    elif 'A'<=ch<chr(ord('A')+k):
+        return chr((ord(ch)-k+26))
+    else:
+        return ch
+
+def decrypt(plain, k):
+    return ''.join([KaiSaDecrypt(ch, k) for ch in plain])
+
+plainText = 'Explicit is better than implicit.'
+cipherText = encrypt(plainText, 5)
+print(plainText)
+print(cipherText)
+print(decrypt(cipherText,5))
 
 ```
-# 範例程式:.py
+# 範例程式:14-02.py
 ```
+from string import ascii_uppercase as uppercase
+from itertools import cycle
+
+#建立密碼表
+table = dict()
+for ch in uppercase:
+    index = uppercase.index(ch)
+    table[ch] = uppercase[index:]+uppercase[:index]
+
+#建立解密密碼表
+deTable = {'A':'A'}
+start = 'Z'
+for ch in uppercase[1:]:
+    index = uppercase.index(ch)
+    deTable[ch] = chr(ord(start)+1-index)
+
+#解密金鑰
+def deKey(key):
+    return ''.join([deTable[i] for i in key])
+
+#加密/解密
+def encrypt(plainText, key):
+    result = []
+    #建立cycle物件，支援金鑰字母的循環使用
+    currentKey = cycle(key)
+    for ch in plainText:
+        if 'A'<=ch<='Z':
+            index = uppercase.index(ch)
+            #取得金鑰字母
+            ck = next(currentKey)
+            result.append(table[ck][index])
+        else:
+            result.append(ch)
+    return ''.join(result)
+
+key = 'DONGFUGUO'
+p = 'PYTHON 3.5.1 PYTHON 2.7.11'
+c = encrypt(p, key)
+print(p)
+print(c)
+print(encrypt(c,deKey(key)))
 
 ```
-# 範例程式:.py
+# 範例程式:14-03.py
 ```
+def encrypt(plainText, t):
+    result = []
+    length = len(t)
+    #將明文分組
+    temp = [plainText[i:i+length] for i in range(0,len(plainText),length)]
+    #除最後一組之外的其他組進行換位處理
+    for item in temp[:-1]:
+        newItem = ''
+        for i in t:
+            newItem = newItem+item[i-1]
+        result.append(newItem)
+    return ''.join(result)+temp[-1]
+
+p = 'Errors should never pass silently.'
+#加密
+c = encrypt(p, (1, 4, 3, 2))
+print(c)
+#解密
+print(encrypt(c, (1, 4, 3, 2)))
 
 ```
-# 範例程式:.py
+# 範例程式:14-04_2.py
 ```
+from hashlib import md5
+from string import ascii_letters, digits
+from itertools import permutations
+from time import time
+
+all_letters = ascii_letters + digits + '.,;'		#候選字元集
+
+def decrypt_md5(md5_value):
+    if len(md5_value) != 32:					#破解32位MD5值
+        print('error')
+        return
+    
+    md5_value = md5_value.lower()				#轉換為小寫MD5值
+    
+    for k in range(5,10):						#預期的密碼長度
+        for item in permutations(all_letters, k):	#暴力測試
+            item = ''.join(item)
+            print('.', end='')					#顯示進度
+            if md5(item.encode()).hexdigest() == md5_value:	#破解成功
+                return item
+
+md5_value = 'e7d057704ea5206d8cb61280741238f5'
+start = time()
+result = decrypt_md5(md5_value)
+if result:
+    print('\nSuccess:  '+md5_value+'==>'+result)
+print('Time used:', time()-start)
 
 ```
-# 範例程式:.py
+# 範例程式:14-05.py
 ```
+import string
+import random
+from Crypto.Cipher import AES
+
+#產生指定長度的金鑰
+def keyGenerater(length):
+    if length not in (16, 24, 32):
+        return None
+    x = string.ascii_letters+string.digits
+    return ''.join([random.choice(x) for i in range(length)]) 
+
+def encryptor_decryptor(key, mode):
+    return AES.new(key, mode, b'0000000000000000')
+
+#以指定金鑰和模式加密給定的資料
+def AESencrypt(key, mode, text):
+    encryptor = encryptor_decryptor(key, mode)
+    return encryptor.encrypt(text)
+
+#以指定金鑰和模式解密給定的資料
+def AESdecrypt(key, mode, text):
+    decryptor = encryptor_decryptor(key, mode)
+    return decryptor.decrypt(text)
+
+if __name__ == '__main__':
+    text = '山東省煙臺市 Python3.5 is excellent.'
+    key = keyGenerater(16)
+    #隨機選擇AES的模式
+    mode = random.choice((AES.MODE_CBC, AES.MODE_CFB, AES.MODE_ECB, AES.MODE_OFB))
+    if not key:
+        print('Something is wrong.')
+    else:
+        print('key:', key)
+        print('mode:', mode)
+        print('Before encryption:', text)
+        #明文必須是位元組字串形式，且長度為16的倍數
+        text_encoded = text.encode()
+        text_length = len(text_encoded)
+        padding_length = 16 - text_length%16
+        text_encoded = text_encoded + b'0'*padding_length        
+        text_encrypted = AESencrypt(key, mode, text_encoded)
+        print('After encryption:', text_encrypted)
+        text_decrypted =AESdecrypt(key, mode, text_encrypted)
+        print('After decryption:', text_decrypted.decode()[:-padding_length])
 
 ```
-# 範例程式:.py
+# 範例程式:14-06.py
 ```
+import rsa
+
+key = rsa.newkeys(3000)		#產生隨機金鑰
+privateKey = key[1]			#私密金鑰
+publicKey = key[0]			#公開金鑰
+
+message = '中國山東煙臺.Now is better than never.'
+print('Before encrypted:',message)
+message = message.encode()
+
+cryptedMessage = rsa.encrypt(message, publicKey)
+print('After encrypted:\n',cryptedMessage)
+
+message = rsa.decrypt(cryptedMessage, privateKey)
+message = message.decode()
+print('After decrypted:',message)
 
 ```
-# 範例程式:.py
+# 範例程式:CheckMD5OfFile.py
 ```
+import sys
+import hashlib
+import os.path
+
+filename = sys.argv[1]
+if os.path.isfile(filename):
+    fp = open(filename, 'rb')
+    contents = fp.read()
+    fp.close()
+    print(hashlib.md5(contents).hexdigest())
+else:
+    print('file not exists')
 
 ```
 # 範例程式:.py
