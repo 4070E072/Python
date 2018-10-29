@@ -4038,72 +4038,668 @@ for field in r:
 c.close()
 
 ```
-# 範例程式:.py
+# 範例程式:09-03.py
 ```
+import socket
+import threading
+import time
+
+activeDegree = dict()
+flag = 1
+def main():
+    global activeDegree
+    global flag
+    #取得本機IP地址
+    HOST = socket.gethostbyname(socket.gethostname())
+    #建立原始通訊端，適用Windows平台
+    #對於其他作業系統，要把socket.IPPROTO_IP替換為socket.IPPROTO_ICMP
+    s = socket.socket(socket.AF_INET, socket.SOCK_RAW, socket.IPPROTO_IP)
+    s.bind((HOST, 0))
+    #設定在捕獲的封包中含有IP標頭
+    s.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
+    #啟用混合模式，捕捉所有封包
+    s.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
+    #開始捕捉封包
+    while flag:
+        c = s.recvfrom(65565)
+        host = c[1][0]
+        activeDegree[host] = activeDegree.get(host, 0)+1
+        #假設本機IP位址為10.2.1.8
+        if c[1][0]!='10.93.2.31': 
+            print(c)
+    #關閉混合模式
+    s.ioctl(socket.SIO_RCVALL, socket.RCVALL_OFF)
+    s.close()
+t = threading.Thread(target=main)
+t.start()
+time.sleep(60)
+flag = 0
+t.join()
+for item in activeDegree.items():
+    print(item)
 
 ```
-# 範例程式:.py
+# 範例程式:09-04.py
 ```
+import socket
+import multiprocessing
+
+def ports(ports_service):
+    #取得常用連接埠對應的服務名稱
+    for port in list(range(1,100))+[143, 145, 113, 443, 445, 3389, 8080, 521, 5000]:
+        try:
+            ports_service[port] = socket.getservbyport(port)
+        except socket.error:
+            pass
+
+def ports_scan(host, ports_service):
+    ports_open = []
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        #逾時時間的不同，將影響掃描結果的精確度
+        sock.settimeout(0.01)
+    except socket.error:
+        print('socket creation error')
+        sys.exit()
+    for port in ports_service:
+        try:
+            #嘗試連結指定連接埠
+            sock.connect((host,port))
+            #記錄開啟的連接埠
+            ports_open.append(port)
+            sock.close()
+        except socket.error:
+            pass
+    return ports_open
+
+if __name__=='__main__':
+    m = multiprocessing.Manager()
+    ports_service = dict()
+    results = dict()
+    ports(ports_service)
+    #建立處理程序池，允許最多8個處理程序同時執行
+    pool = multiprocessing.Pool(processes=8)
+    net = '10.9.1.'
+    for host_number in map(str, range(80,83)):
+        host = net+host_number
+        #建立一個新的處理程序，同時記錄執行結果
+        results[host] = pool.apply_async(ports_scan, (host, ports_service))
+        print('starting '+host+'...')
+    #關閉處理程序池，close()必須在join()之前執行
+    pool.close()
+    #等待池中的處理程序全部執行結束
+    pool.join()
+
+    #列印輸出結果
+    for host in results:
+        print('='*30)
+        print(host,'.'*10)
+        for port in results[host].get():
+            print(port, ':', ports_service[port])
 
 ```
-# 範例程式:.py
+# 範例程式:09-04_2.py
 ```
+from time import sleep
+from socket import gethostbyname
+from datetime import datetime
+
+def get_ipAddresses(url):
+    ipAddresses = [0]
+    while True:
+        sleep(0.5)				#暫停0.5秒
+        ip = gethostbyname(url)
+        if ip != ipAddresses[-1]:	#目標主機IP位址發生變化
+            ipAddresses.append(ip)
+            print(str(datetime.now())[:19]+'===>'+ip)
+get_ipAddresses(r'www.microsoft.com')
 
 ```
-# 範例程式:.py
+# 範例程式:09-04_3.py
 ```
+import socket
+import nmap
+
+nmScan = nmap.PortScanner()			#建立連接埠掃描物件
+ip = socket.gethostbyname('www.microsort.com')	#取得目標主機的IP位址
+nmScan.scan(ip,'80')				#掃描指定連接埠
+print(nmScan[ip]['tcp'][80]['state'])	#查看連接埠狀態
 
 ```
-# 範例程式:.py
+# 範例程式:09-05.py
 ```
+import sys
+import multiprocessing
+import re
+import os
+import urllib.request as lib
+
+def craw_links(url, depth, keywords, processed):
+    '''url:the url to craw
+     depth:the current depth to craw
+     keywords:the tuple of keywords to focus
+     pool:process pool
+    '''
+    contents = []
+    if url.startswith(('http://', 'https://')):        
+        if url not in processed:
+            #mark this url as processed
+            processed.append(url)
+        else:
+            #avoid processing the same url again
+            return
+        print('Crawing '+url+'...')
+        fp = lib.urlopen(url)
+        #Python3 returns bytes, so need to decode. 
+        contents = fp.read()
+        contents_decoded = contents.decode('UTF-8')
+        fp.close()
+        pattern = '|'.join(keywords)
+        #if this page contains certain keywords, save it to a file
+        flag = False
+        if pattern:
+            searched = re.search(pattern, contents_decoded)
+        else:
+            #if the keywords to filter is not given, save current page
+            flag = True
+        if flag or searched:
+            with open('craw\\'+url.replace(':','_').replace('/','_'), 'wb') as fp:
+                fp.write(contents)
+        #find all the links in the current page
+        links = re.findall('href="(.*?)"', contents_decoded)
+        #craw all links in the current page
+        for link in links:
+            #consider the relative path
+            if not link.startswith(('http://','https://')):                
+                try:
+                    index = url.rindex('/')
+                    link = url[0:index+1]+link
+                except:
+                    pass                
+            if depth>0 and link.endswith(('.htm','.html')):
+                craw_links(link, depth-1, keywords, processed)
+                
+if __name__=='__main__':   
+    processed = []   
+    keywords = ('datetime','KeyWord2')
+    if not os.path.exists('craw') or not os.path.isdir('craw'):
+        os.mkdir('craw')
+    craw_links(r'https://docs.python.org/3/library/index.html', 1, keywords, processed)
 
 ```
-# 範例程式:.py
+# 範例程式:09-07.py
 ```
+import os.path
+from flask import Flask
+from flask.ext.mail import Mail, Message
+
+app = Flask(__name__)
+#以126免費郵件為例
+app.config['MAIL_SERVER'] = 'smtp.126.com'
+app.config['MAIL_PORT'] = 25
+app.config['MAIL_USE_TLS'] = True
+#如果電子郵件帳號是abcd@126.com，便應填寫abcd
+app.config['MAIL_USERNAME'] = 'your own username of your email'
+app.config['MAIL_PASSWORD'] = 'your own password of the username'
+
+def sendEmail(From, To, Subject, Body, Html, Attachments):
+    '''To:must be a list'''
+    msg = Message(Subject, sender=From, recipients=To)
+    msg.body = Body
+    msg.html = Html
+    for f in Attachments:
+        with app.open_resource(f) as fp:
+            msg.attach(filename=os.path.basename(f), data=fp.read(),
+                     content_type = 'application/octet-stream')
+    mail = Mail(app)
+    with app.app_context():
+        mail.send(msg)
+
+if __name__=='__main__':
+    #From的電子郵件帳號必須與前面相同
+    From = '<your email address>'
+    #這是筆者的QQ帳號，大家測試時一定要記得修改啊
+    To = ['<306467355@qq.com>']
+    Subject = 'hello world'
+    Body = 'Only a test.'
+    Html = '<h1>test test test.</h1>'
+    Attachments =['c:\\python35\\python.exe']
+    sendEmail(From, To, Subject, Body, Html, Attachments)
 
 ```
-# 範例程式:.py
+# 範例程式:client.py
 ```
+import socket
+
+#伺服端主機IP位址和連接埠號
+HOST = '127.0.0.1'
+PORT = 50007
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    #連接伺服器
+    s.connect((HOST, PORT))
+except Exception as e:
+    print('Server not found or not open')
+    sys.exit()
+while True:
+    c = input('Input the content you want to send:')
+    #傳送資料
+    s.sendall(c.encode())
+    #從伺服端接收資料
+    data = s.recv(1024)
+    data = data.decode()
+    print('Received:', data)
+    if c.lower() == 'bye':
+        break
+#關閉連接
+s.close()
 
 ```
-# 範例程式:.py
+# 範例程式:flask_test.py
 ```
+from flask import Flask
+
+app = Flask(__name__)
+@app.route("/")
+def hello():    
+    return "Hello World! 你好嗎？" 
+
+if __name__ == "__main__":
+    app.run()
 
 ```
-# 範例程式:.py
+# 範例程式:ftpClient.py
 ```
+import socket
+import sys
+import re
+import struct
+import getpass
+
+def main(serverIP):
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((serverIP, 10600))
+    userId = input('請輸入帳號名稱：')
+    #以getpass模組的getpass()方法取得密碼，不顯示
+    userPwd = getpass.getpass('請輸入密碼：')
+    message = userId+','+userPwd
+    sock.send(message.encode())
+    login = sock.recv(100)
+    #驗證是否登錄成功
+    if login == b'error':
+        print('帳號名稱或密碼錯誤')
+        return
+    #整數編碼大小
+    intSize = struct.calcsize('I')
+    while True:
+        #接收用戶端命令，其中##>是提示符號
+        command = input('##> ').lower().strip()
+        #未輸入任何有效字元，提前進入下一次迴圈，等待使用者繼續輸入
+        if not command:
+            continue
+        #向伺服端傳送命令
+        command = ' '.join(command.split())
+        sock.send(command.encode())
+        #退出
+        if command in ('quit', 'q'):
+            break
+        #查看檔案列表
+        elif command in ('list', 'ls', 'dir'):
+            #先接收位元組字串大小，再根據情況接收適當數量的位元組字串
+            loc_size = struct.unpack('I', sock.recv(intSize))[0]
+            files = eval(sock.recv(loc_size).decode())
+            for item in files:
+                print(item)
+        #切換至上一層目錄
+        elif ''.join(command.split()) == 'cd..':
+            print(sock.recv(100).decode())
+        #查看目前工作目錄
+        elif command in ('cwd', 'cd'):
+            print(sock.recv(1024).decode())
+        #切換至子資料夾
+        elif command.startswith('cd '):
+            print(sock.recv(100).decode())
+        #從伺服器下載檔案
+        elif command.startswith('get '):
+            isFileExist = sock.recv(20)
+            #檔案不存在
+            if isFileExist != b'ok':
+                print('error')
+            #檔案存在，開始下載
+            else:
+                print('downloading.', end='')
+                fp = open(command.split()[1], 'wb')
+                while True:
+                    #顯示進度
+                    print('.', end='')
+                    data = sock.recv(4096)
+                    if data == b'overxxxx':
+                        break
+                    fp.write(data)
+                    sock.send(b'ok')
+                fp.close()
+                print('ok')
+                
+        #無效命令
+        else:
+            print('無效命令')
+    sock.close()
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print('Usage:{0} serverIPAddress'.format(sys.argv[0]))
+        exit()
+    serverIP = sys.argv[1]
+    #以規則運算式判斷伺服器位址是否為合法的IP位址
+    if re.match(r'^\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}$', serverIP):
+        main(serverIP)
+    else:
+        print('伺服器位址不合法')
+        exit()
 
 ```
-# 範例程式:.py
+# 範例程式:ftpServer.py
 ```
+import socket
+import threading
+import os
+import struct
+
+#使用者帳號、密碼、主目錄
+#也可以把這些資料存放到資料庫
+users = {'zhangsan':{'pwd':'zhangsan1234', 'home':r'c:\python 3.5'},
+         'lisi':{'pwd':'lisi567', 'home':'c:\\'}}
+
+def server(conn,addr, home):
+    print('新用戶端：'+str(addr))
+    #進入目前帳號主目錄
+    os.chdir(home)
+    while True:
+        data = conn.recv(100).decode().lower()
+        #顯示用戶端輸入的每一道命令
+        print(data)
+        #用戶端退出
+        if data in ('quit', 'q'):
+            break
+        #查看目前資料夾的檔案列表
+        elif data in ('list', 'ls', 'dir'):
+            files = str(os.listdir(os.getcwd()))
+            files = files.encode()
+            #先傳送位元組字串大小，再傳送位元組字串
+            conn.send(struct.pack('I', len(files)))
+            conn.send(files)
+        #切換至上一層目錄
+        elif ''.join(data.split()) == 'cd..':
+            cwd = os.getcwd()
+            newCwd = cwd[:cwd.rindex('\\')]
+            #考慮根目錄的情況
+            if newCwd[-1] == ':':
+                newCwd += '\\'
+            #限定使用者主目錄
+            if newCwd.lower().startswith(home):
+                os.chdir(newCwd)
+                conn.send(b'ok')
+            else:
+                conn.send(b'error')
+        #查看目前的目錄
+        elif data in ('cwd', 'cd'):
+            conn.send(str(os.getcwd()).encode())
+        elif data.startswith('cd '):
+            #指定最大分隔次數，考慮目的資料夾帶有空格的情況
+            #只允許以相對路徑進行跳轉
+            data = data.split(maxsplit=1)
+            if len(data) == 2 and  os.path.isdir(data[1]) \
+               and data[1]!=os.path.abspath(data[1]):
+                os.chdir(data[1])
+                conn.send(b'ok')
+            else:
+                conn.send(b'error')
+        #下載檔案
+        elif data.startswith('get '):
+            data = data.split(maxsplit=1)
+            #檢查檔案是否存在
+            if len(data) == 2 and os.path.isfile(data[1]):
+                conn.send(b'ok')
+                fp = open(data[1], 'rb')
+                while True:
+                    content = fp.read(4096)
+                    #傳送檔案結束
+                    if not content:
+                        conn.send(b'overxxxx')
+                        break
+                    #傳送檔案內容
+                    conn.send(content)
+                    if conn.recv(10) == b'ok':
+                        continue
+                fp.close()
+            else:
+                conn.send(b'no')
+        #無效命令
+        else:
+            pass
+            
+    conn.close()
+    print(str(addr)+'關閉連接')
+
+#建立Socket，監聽本地連接埠，並等待用戶端連接
+sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+sock.bind(('', 10600))
+sock.listen(5)
+while True:
+    conn, addr = sock.accept()
+    #驗證用戶端輸入的帳號和密碼是否正確
+    userId, userPwd = conn.recv(1024).decode().split(',')
+    if userId in users and users[userId]['pwd'] == userPwd:
+        conn.send(b'ok')
+        #為每個用戶端連接建立與啟動一個執行緒
+        #參數為連接、用戶端位址、帳號主目錄
+        home = users[userId]['home']
+        t = threading.Thread(target=server, args=(conn,addr,home))
+        t.daemon = True
+        t.start()
+    else:
+        conn.send(b'error')
 
 ```
-# 範例程式:.py
+# 範例程式:server.py
 ```
+import socket
+
+words = {'how are you?':'Fine,thank you.', 'how old are you?':'38',
+        'what is your name?':'Dong FuGuo', "what's your name?":'Dong FuGuo',
+        'where do you work?':'SDIBT', 'bye':'Bye'}
+HOST = ''
+PORT = 50007
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#繫結socket
+s.bind((HOST, PORT))
+#開始監聽用戶端連接
+s.listen(1)
+print('Listening at port:',PORT)
+conn, addr = s.accept()
+print('Connected by', addr)
+while True:
+    data = conn.recv(1024)
+    data = data.decode()
+    if not data:
+        break
+    print('Received message:', data)
+    conn.sendall(words.get(data, 'Nothing').encode())
+conn.close()
+s.close()
 
 ```
-# 範例程式:.py
+# 範例程式:showIP.py
 ```
+import socket
+import uuid
+
+ip = socket.gethostbyname(socket.gethostname())	#本機IP地址
+node = uuid.getnode()
+macHex = uuid.UUID(int=node).hex[-12:]
+mac = []
+for i in range(len(macHex))[::2]:
+    mac.append(macHex[i:i+2])
+mac = ':'.join(mac)							#網卡實體位址
+print('IP:', ip)
+print('MAC:', mac)
 
 ```
-# 範例程式:.py
+# 範例程式:sockMiddle.py
 ```
+import sys
+import socket
+import threading
+
+def middle(conn, addr):
+    #面對伺服器的Socket
+    sockDst = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sockDst.connect((ipServer,portServer))
+    while True:
+        data = conn.recv(1024).decode()
+        print('收到用戶端訊息：'+data)
+        if data == '不要發給伺服器':
+            conn.send('該訊息已被代理伺服器過濾'.encode())
+            print('該訊息已過濾')
+        elif data.lower() == 'bye':
+            print(str(addr)+'用戶端關閉連接')
+            break
+        else:
+            sockDst.send(data.encode())
+            print('已轉發伺服器')
+            data_fromServer = sockDst.recv(1024).decode()
+            print('收到伺服器回覆的訊息：'+data_fromServer)
+            if data_fromServer == '不要發給用戶端':
+                conn.send('該訊息已被代理伺服器修改'.encode())
+                print('訊息已被篡改')
+            else:
+                conn.send(b'Server reply:'+data_fromServer.encode())
+                print('已轉發伺服器訊息給用戶端')
+        
+    conn.close()
+    sockDst.close()
+
+def main():
+    sockScr = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sockScr.bind(('', portScr))
+    sockScr.listen(200)
+    print('代理已啟動')
+    while True:
+        try:
+            conn, addr = sockScr.accept()
+            t = threading.Thread(target=middle, args=(conn, addr))
+            t.start()
+            print('新客戶：'+str(addr))
+        except:
+            pass
+        
+if __name__ == '__main__':
+    try:
+        #(本機IP地址,portScr)<==>(ipServer,portServer)
+        #代理伺服器監聽連接埠
+        portScr = int(sys.argv[1])
+        #伺服器IP位址與連接埠號
+        ipServer = sys.argv[2]
+        portServer = int(sys.argv[3])
+        main()
+    except:
+        print('Sth error')
 
 ```
-# 範例程式:.py
+# 範例程式:sockMiddle_client.py
 ```
+import sys
+import socket
+
+def main():
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.connect((ip, port))
+    while True:
+        data = input('What do you want to ask:')
+        sock.send(data.encode())
+        print(sock.recv(1024).decode())
+        if data.lower() == 'bye':
+            break
+    sock.close()
+
+if __name__ == '__main__':
+    try:
+        #代理伺服器的IP位址和連接埠號
+        ip = sys.argv[1]
+        port = int(sys.argv[2])
+        main()
+    except:
+        print('Sth error')
 
 ```
-# 範例程式:.py
+# 範例程式:sockMiddle_server.py
 ```
+import sys
+import socket
+import threading
+
+#回覆訊息，原樣返回
+def replyMessage(conn):
+    while True:
+        data = conn.recv(1024)
+        conn.send(data)
+        if data.decode().lower() == 'bye':
+            break
+    conn.close()
+
+def main():
+    sockScr = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sockScr.bind(('', port))
+    sockScr.listen(200)
+    while True:
+        try:
+            conn, addr = sockScr.accept()
+            #只允許特定主機存取本伺服器
+            if addr[0] != onlyYou:
+                conn.close()
+                continue
+            #建立並啟動執行緒
+            t = threading.Thread(target=replyMessage, args=(conn,))
+            t.start()        
+        except:
+            print('error')
+
+if __name__ == '__main__':
+    try:
+        #取得命令列參數，port為伺服器監聽連接埠
+        #只允許IP位址為onlyYou的主機存取
+        port = int(sys.argv[1])
+        onlyYou = sys.argv[2]
+        main()
+    except:
+        print('Must give me a number as port')
 
 ```
-# 範例程式:.py
+# 範例程式:udp_receiver.py
 ```
+import socket
+#使用IPV4協定，以UDP協定傳輸資料
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#繫結連接埠和埠號，空字串表示本機任何可用的IP位址
+s.bind(('', 5000))
+while True:
+    data, addr = s.recvfrom(1024)
+    #顯示接收的內容
+    print('received message:{0} from PORT {1} on {2}'.format(data.decode(),
+                                                     addr[1], addr[0]))
+    if data.decode().lower() == 'bye':
+        break
+s.close( )
 
 ```
-# 範例程式:.py
+# 範例程式:udp_sender.py
 ```
+import socket
+import sys
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+#假設192.168.0.103是接收端機器的IP位址
+s.sendto(sys.argv[1].encode() , ("10.93.2.31" ,5000))
+s.close( )
 
 ```
 # 範例程式:.py
