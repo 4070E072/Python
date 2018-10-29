@@ -4702,68 +4702,395 @@ s.sendto(sys.argv[1].encode() , ("10.93.2.31" ,5000))
 s.close( )
 
 ```
-# 範例程式:.py
+# 範例程式:10-01.py
 ```
+from threading import Thread
+import time
+
+def func1(x, y):
+    for i in range(x, y):
+        print(i, end=' ')
+    print()
+    time.sleep(10)		#等待10秒
+
+t1 = Thread(target=func1, args=(15, 20))	#建立執行緒物件，args是傳遞給函數的參數
+t1.start()			#啟動執行緒
+t1.join(5)			#等待中的執行緒t1執行結束，或等待5秒鐘
+t2 = Thread(target=func1, args=(5, 10))
+t2.start()
 
 ```
-# 範例程式:.py
+# 範例程式:10-02.py
 ```
+from threading import Thread
+import time
+def func1():
+    time.sleep(10)
+
+t1 = Thread(target=func1)
+print('t1:',t1.isAlive())	#執行緒未未運行，返回False
+t1.start()
+print('t1:',t1.isAlive())	#執行緒還在運行，返回True
+t1.join(5)				#join()方法因逾時而結束
+print('t1:',t1.isAlive())	#執行緒還在運行，返回True
+t1.join()					#等待中的執行緒結束
+print('t1:',t1.isAlive())	#執行緒已結束，返回False
 
 ```
-# 範例程式:.py
+# 範例程式:10-04.py
 ```
+import threading
+import time
+
+#自訂執行緒類別
+class mythread(threading.Thread):
+    def __init__(self):
+        threading.Thread.__init__(self)
+    #重寫run()方法
+    def run(self):
+        global x
+        #取得鎖，如果成功則進入臨界區
+        lock.acquire()
+        x = x+3
+        print(x)
+        #退出臨界區，釋放鎖
+        lock.release()
+        
+lock = threading.RLock()
+#也可以使用Lock類別實現加鎖和執行緒同步
+#lock = threading.Lock()
+
+#存放多個執行緒的列表
+tl = []
+for i in range(10):
+    #建立執行緒並加入列表
+    t = mythread()
+    tl.append(t)
+
+#多個執行緒互斥存取的變數
+x = 0
+#啟動列表的所有執行緒
+for i in tl:
+    i.start()
 
 ```
-# 範例程式:.py
+# 範例程式:10-05.py
 ```
+import threading
+from random import randint
+from time import sleep
+
+#自訂生產者執行緒類別
+class Producer(threading.Thread):
+    def __init__(self, threadname):
+        threading.Thread.__init__(self,name=threadname)
+    def run(self):
+        global x
+        while True:
+            #取得鎖
+            con.acquire()
+            #假設共用列表中，最多只能容納20個元素
+            if len(x) == 20:
+                #如果共用列表已滿，生產者等待
+                con.wait()
+                print('Producer is waiting.....')
+            else:
+                print('Producer:', end=' ')
+                #產生新元素，附加至共用列表
+                x.append(randint(1, 1000))
+                print(x)
+                sleep(1)
+                #喚醒等待條件的執行緒
+                con.notify()
+            #釋放鎖
+            con.release()
+        
+#自訂消費者執行緒類別
+class Consumer(threading.Thread):
+    def __init__(self, threadname):
+        threading.Thread.__init__(self, name =threadname)
+    def run(self):
+        global x
+        while True:
+            #取得鎖
+            con.acquire()
+            if not x:
+                #等待
+                con.wait()
+                print('Consumer is waiting.....')
+            else:
+                print(x.pop(0))
+                print(x)
+                sleep(2)
+                con.notify()
+            con.release()
+        
+#建立Condition物件，以及生產者執行緒和消費者執行緒
+con = threading.Condition()
+x = []
+p = Producer('Producer')
+c = Consumer('Consumer')
+p.start()
+c.start()
+p.join()
+c.join()
 
 ```
-# 範例程式:.py
+# 範例程式:10-06.py
 ```
+import threading
+import time
+import queue 
+
+#自訂生產者執行緒類別
+class Producer(threading.Thread):
+    def __init__(self, threadname):
+        threading.Thread.__init__(self, name = threadname)
+    def run(self):
+        global myqueue
+        #在佇列尾部附加元素
+        myqueue.put(self.getName())
+        print(self.getName(), ' put ', self.getName(), ' to queue.')
+
+class Consumer(threading.Thread):
+    def __init__(self, threadname):
+        threading.Thread.__init__(self, name = threadname)
+    def run(self):
+        global myqueue
+        #在佇列頭部取得元素
+        print(self.getName(), ' get ', myqueue.get(), ' from queue.')
+
+myqueue = queue.Queue()
+
+#建立生產者執行緒和消費者執行緒
+plist = []
+clist = []
+for i in range(10):
+    p = Producer('Producer' + str(i))
+    plist.append(p)
+    c = Consumer('Consumer' + str(i))
+    clist.append(c)
+
+#依序啟動生產者執行緒和消費者執行緒
+for p, c in zip(plist, clist):
+    p.start()
+    p.join()
+    c.start()
+    c.join()
 
 ```
-# 範例程式:.py
+# 範例程式:10-08.py
 ```
+from multiprocessing import Process
+import os
+
+def f(name):
+    print('module name:', __name__)
+    print('parent process:', os.getppid())	#查看父處理序ID
+    print('process id:', os.getpid())		#查看目前處理序ID
+    print('hello', name)
+
+if __name__ == '__main__':
+    p = Process(target=f, args=('bob',))	#建立處理序
+    p.start()			#啟動處理序
+    p.join()			#等待處理序執行結束
 
 ```
-# 範例程式:.py
+# 範例程式:10-08_2.py
 ```
+from multiprocessing import Pool
+from statistics import mean
+
+def f(x):
+    return mean(x)
+
+if __name__ == '__main__':
+    x = [list(range(10)), list(range(20,30)), list(range(50,60)), list(range(80,90))]
+    with Pool(5) as p:		#建立包含5個處理序的處理序池
+        print(p.map(f, x))		#並行執行
 
 ```
-# 範例程式:.py
+# 範例程式:10-09.py
 ```
+import multiprocessing as mp
+
+def foo(q):
+    q.put('hello world!')			#把資料放入佇列
+
+if __name__ == '__main__':
+    mp.set_start_method('spawn')	#Windows系統建立子處理序的預設方式
+    q = mp.Queue()
+    p = mp.Process(target=foo, args=(q,))  #建立處理序，把Queue物件作為參數傳遞
+    p.start()
+    p.join()
+    print(q.get())				#從佇列取得資料
 
 ```
-# 範例程式:.py
+# 範例程式:10-09_2.py
 ```
+import multiprocessing as mp
+
+def foo(q):
+    q.put('hello world')
+
+if __name__ == '__main__':
+    ctx = mp.get_context('spawn')
+    q = ctx.Queue()
+    p = ctx.Process(target=foo, args=(q,))
+    p.start()
+    p.join()
+    print(q.get())
 
 ```
-# 範例程式:.py
+# 範例程式:10-10.py
 ```
+from multiprocessing import Process, Pipe
+
+def f(conn):
+    conn.send('hello world')		#對管道傳送資料
+    conn.close()				#關閉管道
+
+if __name__ == '__main__':
+    parent_conn, child_conn = Pipe()	#建立管道物件
+    p = Process(target=f, args=(child_conn,))	#將管道的一方作為參數，傳遞給子處理序
+    p.start()
+    p.join()
+    print(parent_conn.recv())		#透過管道的另一方取得資料
+    parent_conn.close()
 
 ```
-# 範例程式:.py
+# 範例程式:10-11.py
 ```
+from multiprocessing import Process, Value, Array
+
+def f(n, a):
+    n.value = 3.1415927
+    for i in range(len(a)):
+        a[i] = a[i]*a[i]
+
+if __name__ == '__main__':
+    num = Value('d', 0.0)					#實數
+    arr = Array('i', range(10))			#整數型陣列
+    p = Process(target=f, args=(num, arr))	#建立處理序物件
+    p.start()
+    p.join()
+    print(num.value)
+    print(arr[:])
 
 ```
-# 範例程式:.py
+# 範例程式:10-12.py
 ```
+from multiprocessing import Process, Manager
+
+def f(d, l, t):
+    d['name'] = 'Dong Fuguo'
+    d['age'] = 38
+    d['sex'] = 'Male'
+    d['affiliation'] = 'SDIBT'
+    l.reverse()
+    t.value = 3    
+
+if __name__ == '__main__':
+    with Manager() as manager:
+        d = manager.dict()
+        l = manager.list(range(10))
+        t = manager.Value('i', 0)
+        p = Process(target=f, args=(d, l, t))
+        p.start()
+        p.join()
+        for item in d.items():
+            print(item)
+        print(l)
+        print(t.value)
 
 ```
-# 範例程式:.py
+# 範例程式:10-13.py
 ```
+from multiprocessing import Process, Lock
+
+def f(l, i):
+    l.acquire()			#取得鎖
+    try:
+        print('hello world', i)
+    finally:
+        l.release()		#釋放鎖
+
+if __name__ == '__main__':
+    lock = Lock()		#建立鎖物件
+    for num in range(10):
+        Process(target=f, args=(lock, num)).start()
 
 ```
-# 範例程式:.py
+# 範例程式:10-14.py
 ```
+from multiprocessing import Process, Event
+
+def f(e, i):
+    if e.is_set():
+        e.wait()
+        print('hello world', i)
+        e.clear()
+    else:
+        e.set()
+
+if __name__ == '__main__':
+    e = Event()
+    for num in range(10):
+        Process(target=f, args=(e,num)).start()
 
 ```
-# 範例程式:.py
+# 範例程式:demo.py
 ```
+import threading
+
+#自訂執行緒類別
+class mythread(threading.Thread):
+    def __init__(self, threadname):
+        threading.Thread.__init__(self, name = threadname)
+        
+    def run(self):
+        global myevent
+        #根據Event物件是否已設定，做出不同的回應
+        if myevent.isSet():
+            #清除標誌
+            myevent.clear()
+            #等待
+            myevent.wait()
+            print(self.getName()+' set')
+        else:
+            print(self.getName()+' not set')
+            #設定標誌
+            myevent.set()
+
+myevent = threading.Event()
+#設定標誌
+myevent.set()
+
+for i in range(10):
+    t = mythread(str(i))
+    t.start()
 
 ```
-# 範例程式:.py
+# 範例程式:threaddaomon.py
 ```
+import threading
+import time
+
+class mythread(threading.Thread):	#繼承Thread類別，建立自訂的執行緒類別
+    def __init__(self, num, threadname):
+        threading.Thread.__init__(self, name=threadname)
+        self.num = num
+    def run(self): 				#重寫run()方法
+        time.sleep(self.num)
+        print(self.num)
+
+t1 = mythread(1, 't1')	#建立自訂執行緒類別物件，daemon預設為False
+t2 = mythread(5, 't2')
+t2.daemon = True		#設定執行緒物件t2的daemon屬性為True
+print(t1.daemon)
+print(t2.daemon)
+t1.start()			#啟動執行緒
+t2.start()
 
 ```
 # 範例程式:.py
